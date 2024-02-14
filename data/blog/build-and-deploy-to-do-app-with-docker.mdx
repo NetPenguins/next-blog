@@ -1,0 +1,249 @@
+---
+title: "Build and deploy To-Do app with Docker"
+date: "2023-08-28"
+category: 
+  - "full-stack-todo-app"
+  - "highlights"
+tags: 
+  - "cd"
+  - "docker"
+  - "docker-compose"
+  - "react-python-mongo"
+# coverImage: "growtika-YniQ5vouxqg-unsplash.jpg"
+---
+
+## Introduction
+
+In this blog post, we will explore the Docker files and Docker Compose configuration for a full-stack Todo application. We'll cover how to set up Docker files for both the backend and frontend components, as well as how to create a Docker Compose file to orchestrate the entire application.
+
+### Dockerizing the Backend - To-Do API
+
+Let's start by containerizing the backend of our Todo application, known as the Todo API. We'll create a Docker file named `Dockerfile` within the `todo-api` directory.
+
+```
+# Use an official Python runtime as a parent image
+FROM python:3.11.5-slim-bookworm
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY todo-api/requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+COPY todo-api /app
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
+
+# Define environment variables
+ENV MONGO_URI=mongodb://mongo:27017/todo
+
+# Run app.py when the container launches
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+```
+
+### Explanation
+
+- We use the official Python 3.11.5-slim-bookworm image as the base image.
+
+- The working directory is set to `/app`.
+
+- We copy the `requirements.txt` file and install the Python dependencies.
+
+- The application code is copied into the container.
+
+- Port 80 is exposed to allow external access.
+
+- An environment variable `MONGO_URI` is set to connect to the MongoDB container.
+
+- The CMD instruction launches the Uvicorn server to run the app.
+
+### **Dockerizing the Frontend - Todo UI**
+
+Next, we'll containerize the frontend of our Todo application, known as the Todo UI. We'll create a Docker file named `Dockerfile` within the `todo-ui` directory.
+
+```
+# Use the official Node.js 14 image for building
+FROM node:20-alpine AS builder
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json to the working directory
+COPY todo-ui/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy app source code
+COPY todo-ui/ ./
+
+# Build the app
+RUN npm run build
+
+# Use a lighter image for the production build
+FROM nginx:alpine
+
+# Copy the built app to the Nginx directory
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Explanation:
+
+- We use the official Node.js 20-alpine image for building.
+
+- The working directory is set to `/app`.
+
+- Dependencies are installed using `npm install`.
+
+- The app source code is copied into the container.
+
+- The app is built using `npm run build`.
+
+- A production-ready Nginx image is used for serving the app.
+
+- The built app is copied to the Nginx directory.
+
+- Port 80 is exposed, and Nginx is started.
+
+### **Docker Compose Configuration**
+
+Docker has revolutionized the way we package and deploy applications, making it easier to create portable and consistent environments. When building Docker images, developers often use a Dockerfile to specify the image's content, configurations, and dependencies. However, even with a well-crafted Dockerfile, there's another crucial aspect to consider: the Docker ignore file.
+
+#### What is a Docker Ignore File?
+
+A Docker ignore file, usually named `.dockerignore`, is an essential tool for optimizing your Docker builds. It allows you to specify which files and directories should be excluded from the build context when creating an image. The build context is the set of files and directories that are sent to the Docker daemon during the build process. By excluding unnecessary files, you can significantly reduce the build context's size and consequently speed up your Docker builds.
+
+#### Why Use a Docker Ignore File?
+
+**1\. Faster Builds**
+
+When you build a Docker image, all files in the build context are sent to the Docker daemon, which can be time-consuming, especially for large projects. By using a Docker ignore file, you can exclude files that aren't required for the image, reducing the build context size and resulting in faster builds.
+
+**2\. Smaller Images**
+
+The files in the build context are copied into the image layers. Excluding unnecessary files means smaller image sizes, which is crucial for efficient storage and faster image distribution.
+
+**3\. Improved Security**
+
+Sensitive information such as credentials, configuration files, and environment variables should not be included in your Docker images. A Docker ignore file helps prevent accidentally including such files in the build context, enhancing security.
+
+**4\. Cleaner Image Structure**
+
+An organized image structure is easier to manage and understand. A well-defined Docker ignore file ensures that only relevant files are present in the image, reducing clutter and complexity.
+
+### Docker Ignore Patterns
+
+Here are some common examples of patterns you might include in a `.dockerignore` file:
+
+```
+__pycache__
+*.pyc
+env
+.env
+```
+
+When using Docker with docker-compose, we need to be aware of the placement and content of the .dockerignore file. In this case, we should have the .dockerignore file at the same location as the docker-compose.yml file.
+
+Inside the .dockerignore file, we specify the paths or files that we want to exclude from being copied into the Docker image. Since we have a mono-repo it's important to ensure we are targeting all directories under the root to ensure context. This will take our previous example and leave us with something like:
+
+```
+**/__pycache__
+**/*.pyc
+**/env
+**/.env
+```
+
+Finally, let's create a Docker Compose file named `docker-compose.yml` to orchestrate the entire application:
+
+```
+version: '3'
+services:
+  todo-api:
+    build:
+      context: .
+      dockerfile: todo-api/Dockerfile
+      args:
+      - --no-cache
+    ports:
+      - "8000:80"
+    depends_on:
+      - todo-db
+    environment:
+      MONGODB_CONNECTION_URI: todo-db
+      DB_NAME: ${DB_NAME} # <-- passed by .env file located with docker-compose.yaml
+      DB_USER: ${DB_USER} # <-- passed by .env file located with docker-compose.yaml
+      DB_PW: ${DB_PW} # <-- passed by .env file located with docker-compose.yaml
+    networks:
+      - mynetwork
+
+  todo-ui:
+    build:
+      context: .
+      dockerfile: todo-ui/Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - todo-api
+    networks:
+      - mynetwork
+
+  todo-db:
+    image: mongo:latest
+    container_name: todo-db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: myadmin
+      MONGO_INITDB_ROOT_PASSWORD: mysecretpassword
+      MONOGO_INITDB_DATABASE: todo_backend
+    ports:
+      - "27017:27017"
+    networks:
+      mynetwork:
+        ipv4_address: 10.0.0.3  # Specify the desired IP address for todo-api
+    command: mongod --auth --bind_ip 127.0.0.1,10.0.0.3
+    volumes:
+      - mongodb_data:/data/db
+        
+networks:
+  mynetwork:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24   # Define your desired subnet here
+
+volumes:
+  mongodb_data:
+```
+
+### **Docker Compose Configuration Explained:**
+
+**Version and Services:** The `version` key specifies the version of Docker Compose being used. In this case, it's version '3'. The `services` section defines the individual containers that constitute the application.
+
+**Todo-api Service:** The `todo-api` service is responsible for the backend API of the application. It is built using a Dockerfile located in the current context. The `args` under `build` specifies the command-line arguments passed to the Docker build process, such as `--no-cache`. The `ports` section maps port 8000 of the host to port 80 of the container. The service depends on the `todo-db` service, meaning it will start after `todo-db`.
+
+Environment variables are set using the `environment` section, including `MONGODB_CONNECTION_URI`, `DB_NAME`, `DB_USER`, and `DB_PW`. These variables hold information necessary for the API to connect to the MongoDB instance. The service is attached to the `mynetwork` network.
+
+**Todo-ui Service:** The `todo-ui` service is responsible for the frontend UI of the application. Similar to `todo-api`, it is built using a Dockerfile. It depends on the `todo-api` service. Port 3000 of the host is mapped to port 80 of the container. The service is also attached to the `mynetwork` network.
+
+**Todo-db Service:** The `todo-db` service uses the official MongoDB image. It has a custom container name and is set to restart unless explicitly stopped. Environment variables are set to configure the MongoDB instance, including `MONGO_INITDB_ROOT_USERNAME`, `MONGO_INITDB_ROOT_PASSWORD`, and `MONGO_INITDB_DATABASE`. Port 27017 of the host is mapped to port 27017 of the container. The service is attached to the `mynetwork` network.
+
+A specific IP address (`ipv4_address`) is assigned to the `todo-db` service within the specified subnet. This ensures a consistent IP address for the service across deployments.
+
+The `command` field specifies the command to run within the container. Here, MongoDB is started with authentication and a binding IP. Volumes are used to persist data between container restarts.
+
+**Networks:** The `networks` section defines the custom network `mynetwork`, which is used to connect the services. The network driver is set to `bridge`, and the IP address range is defined as `10.0.0.0/24`.
+
+**Volumes:** Lastly, the `volumes` section creates a volume named `mongodb_data`. This volume is used to store MongoDB data persistently, ensuring data integrity across container restarts.
+
+## Conclusion
+
+In this comprehensive guide, we've covered how to Dockerize both the backend and frontend components of a full-stack Todo application. We've also shown how to create a Docker Compose file to coordinate the different services. With these Docker files and Docker Compose configuration, deploying and scaling your Todo app becomes much simpler and more efficient.

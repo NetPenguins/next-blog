@@ -1,0 +1,296 @@
+---
+title: "Angular BrewApi Example"
+date: "2023-01-07"
+category: 
+  - "web-development"
+tags: 
+  - "angular"
+  - "apis"
+  - "typescript"
+  - "web-dev"
+# coverImage: "pexels-photo-5858206.jpeg"
+---
+
+Today I want to go over how Angular works using a basic brewery listing example using the [OpenBrewery API](https://www.openbrewerydb.org/documentation).
+
+We can begin by either creating an Angular project from scratch or by using the EdgyStack-Labs starter template that includes dark mode.
+
+## TL;DR
+
+For those that just want to learn by reading the code and figuring it our or just want to see it run here is the finished code [https://github.com/NetPenguins/angular-brewskies](https://github.com/NetPenguins/angular-brewskies). A live example of the code can be found at [https://breweries-example.netlify.app](https://breweries-example.netlify.app).
+
+## Starting from scratch
+
+To start an Angular project you should have Node installed on your machine. Then you will need to install Angular-cli using:
+
+```bash
+npm install -g @angular/cli
+```
+
+Next create the new project using ng:
+
+```bash
+ng new brewery-example
+```
+
+## Using dark mode template
+
+You can find the template at [https://github.com/NetPenguins/edgylabs-angular-starter-theme](https://github.com/NetPenguins/edgylabs-angular-starter-theme) and click the "Use this template" button to immediately add the template to your repos. You can alternatively clone the repo locally.
+
+```bash
+git clone https://github.com/NetPenguins/edgylabs-angular-starter-theme
+```
+
+## Understanding Angular
+
+First make sure you have a peek at the Angular documentation and a bookmark may be worthy if you intend to seriously develop in Angular.
+
+[https://angular.io/](https://angular.io/)
+
+When you open the source code you will notice that there is a `styles.scss` file under the **src** directory. This file is used to house global scss styling and a place to import style files you plan to use globally. Next lets open up the **app** directory and notice that there are a number of files beginning with **app**.**component.\***, these are your primary app-component files. They are self explanatory based on their file extensions and consist of the html, scss(styling), spec.ts(test file) and ts. The **app.module.ts** is your primary app module where you will need to include all modules and providers you use throughout the app. To add a new service we can run the following:
+
+```bash
+ng g s services/new-service
+```
+
+This command call the angular-cli and passes a g (generate), s (service) and path for new service. The same is used to create a new component except we will replace the **s** with a **c** and either create a components/ path or leave the component in the root of **app**. The former is preferred if you will have more than one component whereas the latter is ok if you only have one component. In this tutorial only one component will be created and we will do so in the root of app.component.ts
+
+## Creating the http.service file
+
+To create the http.service we will make the following call:
+
+```bash
+ng g s services/http
+```
+
+Once the command finishes we will navigate to app/services/http.service.ts and begin adding the logic for calling the API.
+
+Import the HttpClient as this will be used to query the API and use the constructor to create a new HttpClient object our service can use:
+
+```javascript
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+@Injectable({
+  providedIn: 'root'
+})
+export class HttpService {
+
+  constructor(private http: HttpClient) { }
+```
+
+Next lets create the query for getting breweries based on a zip code or default to 50 breweries with 0 parameters passed in:
+
+```javascript
+get(query: string){
+    let q = query.length === 5
+    ? `https://api.openbrewerydb.org/breweries?by_postal=${query}` 
+    : `https://api.openbrewerydb.org/breweries?per_page=50`;
+    return this.http.get(q)
+  }
+```
+
+and last but not least lets add logic to also allow the user to query for breweries based on the state:
+
+```javascript
+getState(query: string){
+    query = query.replace(' ', '_');
+    return this.http.get(`https://api.openbrewerydb.org/breweries?by_state=${query}`)
+  }
+```
+
+Next let's add our HttpService to **app.component.ts** so we can make use of it in our app.
+
+```javascript
+import { Component } from '@angular/core';
+import { HttpService } from './services/http.service';
+import { UiStyleToggleService } from './services/ui-style-toggle.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent {
+  constructor(private _http: HttpService, private uiStyleToggleService: UiStyleToggleService) {}
+
+  title = 'brewery-example';
+  darkmode: boolean = this.uiStyleToggleService.isDarkThemeSelected();
+
+  toggleTheme() {
+    this.uiStyleToggleService.toggle();
+    this.darkmode = this.uiStyleToggleService.isDarkThemeSelected();
+  }
+}
+```
+
+Awesome now that the http.service is rigged up and ready to be utilized lets hop back over to app.component.ts and begin making the data obtained "useful".
+
+## Wiring the frontend
+
+I will start by looking at the app.component.html ignoring the `<div class="toolbar" role="banner">` block we land in the area we will add our search functionality. To create a two way data binding we will be using the **[ngModel](https://angular.io/guide/built-in-directives#using-ngclass-with-an-expression)** directive.
+
+Angular comes with three different [Directives](https://angular.io/guide/built-in-directives); however, for this tutorial I am only focusing on [Structural](https://angular.io/guide/built-in-directives#built-in-structural-directives) and [Attribute](https://angular.io/guide/built-in-directives#built-in-attribute-directives) directives. Please visit the links provided to learn more about all three directives as this is very important to understanding data modeling in Angular!
+
+To accomplish two-way data binding we will need to add `FormsModule` to **app.module.ts** and make an import reference.
+
+```javascript
+import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { HttpClientModule } from '@angular/common/http';
+import { UiStyleToggleService } from './services/ui-style-toggle.service';
+import { StorageService } from './services/local-storage.service';
+import { FormsModule } from '@angular/forms';
+
+export function themeFactory(themeService: UiStyleToggleService) {
+  return () => themeService.setThemeOnStart();
+}
+
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule,
+    FormsModule,
+  ],
+  providers: [
+    UiStyleToggleService,
+    StorageService,
+    {provide: APP_INITIALIZER, useFactory: themeFactory, deps: [UiStyleToggleService], multi: true}
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
+
+After this has been added hop back over to the app.component.html file and add your input field as follows:
+
+```xml
+<div class="card-container">
+  <div class="card">
+    <strong>Search by Zip</strong>
+    <input type="text" id="zip" [(ngModel)]="zip"><br>
+    <button (click)="onSearch()">Search</button>
+  </div>
+</div>
+```
+
+Notice that I have an `[(ngModel)]="zip"` directive being used. This directive adds two-way data binding to the **zip** variable in our app.component.ts file to the input being provided to this input field. You will also see the button calls an Angular click event called `onSearch().`
+
+Lets hop over to app.component.ts and create these fields.
+
+```javascript
+import { Component } from '@angular/core';
+import { HttpService } from './services/http.service';
+import { UiStyleToggleService } from './services/ui-style-toggle.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent {
+  brews: any;
+  zip: string = '';
+  
+  constructor(private _http: HttpService, private uiStyleToggleService: UiStyleToggleService) {}
+
+  title = 'brewery-example';
+  darkmode: boolean = this.uiStyleToggleService.isDarkThemeSelected();
+
+  toggleTheme() {
+    this.uiStyleToggleService.toggle();
+    this.darkmode = this.uiStyleToggleService.isDarkThemeSelected();
+  }
+
+  onSearch() {
+    this._http.get(this.zip).subscribe(data => {
+     this.brews = data;
+    })
+
+  }
+}
+```
+
+Now that we have added a **zip** field to bind our data to lets talk about the **onSearch()** method. We will call the `_http.get(this.zip).subscribe`... and assign the data to our **brews** object.
+
+Now that we have a way to get data let's create some output. In the **app.component.html** file we will make a grid of links displaying the breweries name and address and linking to the website collected via the http.get call above:
+
+```xml
+<h1>Results</h1>
+<ul *ngIf="brews">
+  <li *ngFor="let result of brews" >
+    <a href="{{result.website_url}}" target="_blank">
+      <p class="name">{{result.name}}</p>
+      <p class="country">{{result.street}}</p>
+      <p>{{result.city}}, {{result.state}} {{result.zip}}</p>
+    </a>
+  </li>
+</ul>
+```
+
+If you run the app now you can see the input field and after giving it a valid zip code (where you know a brewery is and hopefully listed) you will see the output appear on the screen. This is great!
+
+But what if we wanted to allow for a more generic search say via state name? To do this let's add a states array and an `onStateSearch(event: any)` method to our app.component.ts:
+
+```javascript
+import { Component } from '@angular/core';
+import { HttpService } from './services/http.service';
+import { UiStyleToggleService } from './services/ui-style-toggle.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent {
+  brews: any;
+  zip: string = '';
+  states: string[] = ['Alabama','Alaska','American Samoa','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','District of Columbia','Federated States of Micronesia','Florida','Georgia','Guam','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Marshall Islands','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Northern Mariana Islands','Ohio','Oklahoma','Oregon','Palau','Pennsylvania','Puerto Rico','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virgin Island','Virginia','Washington','West Virginia','Wisconsin','Wyoming']
+  constructor(private _http: HttpService, private uiStyleToggleService: UiStyleToggleService) {}
+
+  title = 'brewery-example';
+  darkmode: boolean = this.uiStyleToggleService.isDarkThemeSelected();
+
+  toggleTheme() {
+    this.uiStyleToggleService.toggle();
+    this.darkmode = this.uiStyleToggleService.isDarkThemeSelected();
+  }
+
+  onSearch() {
+    this._http.get(this.zip).subscribe(data => {
+     this.brews = data;
+    })
+
+  }
+
+  onStateSearch(event: any) {
+    console.log(event);
+    this._http.getState(event.target.value).subscribe(data => {
+      this.brews = data;
+    })
+  }
+
+}
+```
+
+And of course we need to add a way for the user to select the state. For this we will hop back into the **app.component.html** file and create a `<select>` element:
+
+```xml
+<div class="card-container">
+  <div class="card">
+    <strong>Search by State</strong>
+    <select (change)=onStateSearch($event)>
+      <option *ngFor="let state of states" [value]="state">{{ state }}</option>
+    </select>
+  </div>
+</div>
+```
+
+For this interaction I have chosen a dropdown select field with an (change) even calling `onStateSearch($event)`. Then we feed the `<option>` a `*ngFor` which is a Structural Directive that allows us to iterate over a list of items. This is obvious by the sight of "let state of states" which you can read "for state in states" and then call \[value\]="state" to make the value usable in the html. We use this value by calling it inside double curly brackets. If you run the code now you will be able to search by either state or zip code.
+
+I hope you have enjoyed this tutorial and as always follow us on [Twitter](https://twitter.com/NetPenguins)!

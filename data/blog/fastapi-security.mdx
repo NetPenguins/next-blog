@@ -1,0 +1,335 @@
+---
+title: "FastAPI, React and Keycloak"
+date: "2023-03-12"
+category: 
+  - "development"
+tags: 
+  - "apis"
+  - "fast-api"
+  - "keycloak"
+  - "oauth"
+  - "python"
+  - "react"
+  - "security"
+# coverImage: "fabio-oyXis2kALVg-unsplash-2.jpg"
+---
+
+In this article we will learn how to setup a FastAPI service using Keycloak as an SSO provider and a React frontend to tie it all together. First things first lets get the concepts and general technologies out of the way by visiting the following links to learn more.
+
+FastAPI - https://fastapi.tiangolo.com
+
+Keycloak - https://www.keycloak.org
+
+React - https://reactjs.org
+
+Docker - https://www.docker.com
+
+#### TLDR;  
+[https://github.com/NetPenguins/edgy-auth](https://github.com/NetPenguins/edgy-auth)
+
+* * *
+
+## Create Keycloak Service - 🔐
+
+For the sake of simplicity we will use the Docker method to create a basic development instance of Keycloak.
+
+#### ⚠️ IMPORTANT: Understand the following example should NEVER be used in a production environment. This is for development only. You can of course walk through the production setup by reading through [https://www.keycloak.org/getting-started/getting-started-docker#\_taking\_the\_next\_step](https://www.keycloak.org/getting-started/getting-started-docker#_taking_the_next_step).
+
+Start by running the following in a terminal:
+
+```bash
+docker run -p 8080:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:21.0.1 start-dev
+```
+
+After this is running you can navigate to [http://localhost:8080/admin/master/console/#/](http://localhost:8080/admin/master/console/#/) and use `admin:admin` for username:password.
+
+### Create a realm
+
+A realm in Keycloak is equivalent to a tenant. Each realm allows an administrator to create isolated groups of applications and users. Initially, Keycloak includes a single realm, called `master`. Use this realm only for managing Keycloak and not for managing any applications.
+
+Use these steps to create the first realm.
+
+1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
+
+3. Click the word **master** in the top-left corner, then click **Create realm**.
+
+5. Enter `demo` in the **Realm name** field.
+
+7. Click **Create**.
+
+![Add realm](/static/images/add-realm.png)
+
+### Create Edgy-Auth Client
+
+We will start with the backend client.
+
+To secure the API, you start by registering the application with your Keycloak instance:
+
+1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
+
+3. Click **Clients**.
+
+5. Click **Create client**
+
+7. Fill in the form with the following values:
+    - **Client type**: `OpenID Connect`
+    
+    - **Client ID**: `edgy-auth`
+
+9. Click **Next**
+
+11. Confirm that **Standard flow** is enabled.
+
+13. Click **Save**.
+
+### Edit Client
+
+![](/static/images/Screenshot-2023-03-12-at-10.41.54-AM-988x1024.png)
+
+![](/static/images/Screenshot-2023-03-12-at-10.45.35-AM-1024x571.png)
+
+As shown in the above image take note of your client secret in the Credentials tab of the client.
+
+### Create Front-End Client
+
+To secure the UI, you start by registering the application with your Keycloak instance:
+
+1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
+
+3. Click **Clients**.
+
+5. Click **Create client**
+
+7. Fill in the form with the following values:
+    - **Client type**: `OpenID Connect`
+    
+    - **Client ID**: `demo`
+
+9. Click **Next**
+
+11. Confirm that **Standard flow** is enabled.
+
+13. Click **Save**.
+
+### Edit Client
+
+![](/static/images/Screenshot-2023-03-12-at-10.48.45-AM-618x1024.png)
+
+* * *
+
+## Create the API - ⚙️
+
+With Keycloak ready, let's move on to coding. First up is the FastAPI endpoint. We start by creating a new python project. As always we will start by creating a new directory and a virtual environment.
+
+```bash
+mkdir app && cd app
+python3 -m venv venv
+# For Mac/Linux users
+source venv/bin/activate
+# For windows users
+.\venv\scripts\Activate
+```
+
+With our virtual environment ready and active let's create a requirements.txt file and add in all the dependencies we will need pip to install.
+
+```bash
+cat > requirements.txt <<EOF
+python-keycloak
+fastapi
+uvicorn
+EOF
+pip install -r requirements.txt
+```
+
+Now that we have our requirements installed into our virtualenv lets create a file called main.py
+
+```bash
+touch main.py
+```
+
+Inside this file we will put the startup configuration for uvicorn:
+
+```python
+'''Main access point'''
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="localhost", port=8081, reload=True)
+```
+
+Next we create a file called app.py where we will put the core of our app logic:
+
+#### Setting up swagger and cors
+
+```python
+'''
+Title: Endpoints for authentication control
+'''
+from fastapi import FastAPI, Depends, status, Header
+from starlette.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
+from keycloak import KeycloakOpenID, KeycloakInvalidTokenError
+from helper import log
+
+description = """
+### 🚀 EdgyStack KeyCloak Driven API.  🔐
+## Users 🐑
+#### You will be able to:
+* **Get user**
+* **Get User Roles**
+---
+"""
+
+tags_metadata = [
+    {
+        "name": "User",
+        "description": "Operations with users. The **login** logic is also here.",
+    }
+]
+app = FastAPI(
+    default_response_class=JSONResponse,
+    title="EdgyStack Authentication Server",
+    version="0.0.1",
+    description=description,
+    openapi_tags=tags_metadata,
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+    )
+origins = [
+    "http://localhost:3000",
+    "localhost:3000"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Here we define the dependencies we need and define our application.  
+
+Setting up FastAPI to hold the openapi information we want along with a default response class of JSONResponse.
+
+```python
+
+app = FastAPI(
+    default_response_class=JSONResponse,
+    title="EdgyStack Authentication Server",
+    version="0.0.1",
+    description=description,
+    openapi_tags=tags_metadata,
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+    )
+```
+
+Next we define our CORSMiddleware passing in a list of acceptable origins. For simplicity we allow all for methods and headers.
+
+```python
+origins = [
+    "http://localhost:3000",
+    "localhost:3000"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Now we wire up our KeycloakOpenID policy.
+
+```python
+keycloak_oid = KeycloakOpenID(
+    server_url="http://localhost:8080/auth",
+    client_id="edgy-auth",
+    realm_name="demo",
+    client_secret_key="gsZ6u0SU4QeqJo6jn3CHF7EDYxaot3R2",
+)
+```
+
+Now we will create two methods. The first to verify the token via introspection and the second to get the userinfo.
+
+```python
+async def verify_token(x_token: str | None = Header(default=None)) -> (Exception| dict[str, str]):
+    log('-----USER----')
+    log(keycloak_oid.userinfo(x_token))
+    log('-------------')
+    valid = keycloak_oid.introspect(x_token)
+    if valid['active']:
+        return valid
+    raise KeycloakInvalidTokenError(error_message='Invalid Token Provided')
+
+async def get_user(x_token: str | None = Header(default=None)) -> (Exception| dict[str, str]):
+    valid = keycloak_oid.introspect(x_token)
+    if valid['active']:
+        return keycloak_oid.userinfo(x_token)
+    raise KeycloakInvalidTokenError(error_message='Invalid Token Provided')
+```
+
+Let's now add in a general InvalidToken exception handler:
+
+```python
+@app.exception_handler(KeycloakInvalidTokenError)
+async def validation_exception_handler(request, exc: KeycloakInvalidTokenError):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content=jsonable_encoder({'detail': exc.error_message})
+    )
+```
+
+Finally we can setup our endpoint methods:
+
+```python
+@app.get('/')
+async def health_check():
+    """
+    Health check endpoint
+    """
+    return {'status': "good"}
+
+@app.get("/admin")
+async def admin(token: dict = Depends(verify_token)): 
+    log(token)
+    return f'Hi premium user {token["preferred_username"]}'
+
+@app.get("/user/roles")
+async def user_roles(token: dict = Depends(verify_token)):
+    return token['realm_access']['roles']
+
+@app.get("/user")
+async def user_(user: dict = Depends(verify_user)):
+    return user
+```
+
+Notice on the /admin /user/roles and /user routes we have defined a variable set to `Depends(method\_for\_verification)`. This is a handy utility provided by FastAPI to protect the paths based on some verification method.
+
+With all this in place we can run our api in the terminal with the following:
+
+```bash
+python main.py
+```
+
+* * *
+
+## Create the UI - 👨🏻‍💻
+
+Now it is time to tie it all together with a react application. For the sake of keeping this article shorter I will only go over the parts that pertain to Keycloak and the API. Feel free to look around the styling and all separately.
+
+Assuming you have NPM installed let's start by cloning the UI.
+
+```bash
+git clone https://github.com/NetPenguins/edgy-auth.git
+cd edgy-auth/dashboard
+npm install
+npm start
+```

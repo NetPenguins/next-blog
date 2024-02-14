@@ -1,0 +1,73 @@
+---
+title: "What is Vagrant?"
+date: "2021-05-17"
+category: 
+  - "security"
+  - "highlights"
+tags: 
+  - "vagrant"
+  - "virtual-machines"
+  - "waddlecorp"
+# coverImage: "droid.jpg"
+---
+
+> Vagrant is a tool for building and managing virtual machine environments in a single workflow. With an easy-to-use workflow and focus on automation, Vagrant lowers development environment setup time, increases production parity, and makes the "works on my machine" excuse a relic of the past.
+> 
+> [Vagrant](https://www.vagrantup.com/intro).[com](https://www.vagrantup.com/intro)
+
+## Well this sounds awesome but what does it really mean?
+
+Vagrant is a one stop shop for setting up a consistent environment across all developer's machines. There is a common theme when issues arise in many dev environments and it goes a little something like, "Well it worked on my machine." This is a phrase every developer will hear at one point or another and a headache to correct once found. Alas Vagrant is a wonderful solution to this all too common phenomena.
+
+With Vagrant you can create a standard development/test environment and ensure that all developers working on the project have identical local envs. This is beneficial because if and more importantly "when" there is drift in the development environment a wandering developer (albeit a daring frontiersman) simply re-provisions their environment to bring them back in-line with the rest of the team.
+
+Vagrant has three primary features you should become familiar with:
+
+- **Box**: A packaged Vagrant environment which is usually a virtual machine.
+- **Provider**: The location in which the virtual env runs.
+- **Provisioner**: A tool to set up the virtual env.
+
+## Box
+
+A box in Vagrant is often a virtual machine that developers can pull down and use in their environment. Boxes typically come from the official Vagrant box catalog also known as "Bento" boxes and can be found at [https://app.vagrantup.com/bento](https://app.vagrantup.com/bento ). Also, there is an entire open sourced section for community boxes created and shared by other developers which can be found at [https://app.vagrantup.com/boxes/search](https://app.vagrantup.com/boxes/search). A word to the wise, DO NOT trust any old box from the open source section! This is a HUGE security risk as boxes can be designed to contain any number of horrid entities.
+
+## Provider
+
+A provider is the location where your virtual environment will be run. Vagrant defaults to VirtualBox which is a wise choice given the fact that VirtualBox is free; however, Vagrant supports a good amount of other [providers](https://www.vagrantup.com/docs/providers) too! Vagrant determines which provider to use based on the `VAGRANT_DEFAULT_PROVIDER` environment variable which allows developers to tailor their experience to the provider available to them.
+
+## Provisioner
+
+The provisioner is the tooling that will be used to setup the boxes once they have been downloaded and started. Vagrant offers the most common types of [provisioners](https://www.vagrantup.com/docs/provisioning) namely Chef, Puppet, Docker and Ansible. You will find that I choose to leverage Ansible for majority of my provisioning needs throughout this sites tutorials and examples. This is because of Ansible's ease of use and yaml based configs.
+
+## Vagrant File
+
+Here we will review a basic use of the Vagrantfile. For a complete picture of how the Vagrantfile works take a look at their [documentation](https://www.vagrantup.com/docs/vagrantfile). Vagrant climbs the directory tree from where the command `vagrant init` is ran until is finds a Vagrantfile to run. The [WaddleCorp Series](https://blog.edgystack.com/tag/waddlecorp/) runs a Vagrantfile which can be found on [GitHub](https://github.com/NetPenguins/pentest-lab/blob/main/Vagrantfile).
+
+Below I will cover the basic principals of the Vagrantfile. We start by defining the config version we wish to run when vagrant begins to execute the file. As of the time of writing only 2 versions exist and we will be focusing in on version 2. We begin by calling the `Vagrant.configure("2") do |config|` which is the Configuration Object that Vagrant will use to configure that "block". From here we can see some variables being set including a list of objects specifying the machine name, ip address, box to use and version of box to use. You may notice that this looks an awful lot like Ruby and that is because Vagrantfiles follow Ruby syntax. We then enter an each loop which will allow us to iterate over each of our `vms` objects.
+
+```ruby
+vms = [{name: "skipper", ip: "172.28.128.100", box: winsrv, version: "0.0.5-alpha"},
+          {name: "kowalski", ip: "172.28.128.101", box: winsrv, version: dcmem},
+          {name: "vegeta", ip: "172.28.128.102", box: winsrv, version: dcmem},
+          {name: "rico", ip: "172.28.128.103", box: winsrv, version: dcmem},
+          {name: "tien", ip: "172.28.128.104", box: winwks, version: "0.0.2-alpha"},
+          {name: "raditz", ip: "172.28.128.105", box: winsrv, version: dcmem},
+          {name: "private", ip: "172.28.128.106", box: winsrv, version: dcmem}]
+  vms.each do |vm|
+    config.vm.define vm[:name] do |system|
+      system.vm.network "private_network", ip: vm[:ip], name: "vboxnet1"
+      system.vm.box = vm[:box]
+      system.vm.box_version = vm[:version]
+      system.vm.guest = :windows
+      system.vm.communicator = "winrm"
+      system.vm.network :forwarded_port, guest: 3389, host: 3389, auto_correct: true
+      system.vm.provision "ansible" do |ansible|
+        ansible.playbook = "#{vm[:name]}.yml"
+      end 
+    end
+  end
+```
+
+Each machine in the `vms` object will be fed to the `config.vm.define` method call which allows us to nest our configurations and create a multi-machine environment. Here we begin working on the `system` variable which is the particular system being defined. We then begin assigning variables for the configuration object to use when creating/setting up the virtual machines. For the network we want to define a `private_network` as we will be working with vulnerable boxes and assign the ip and network name. The rest is basic variable assignment based on the configuration variables. Worth noting here towards the end is a second call to `system.vm.network` which this time forwards ports for our host and guest to communicate using **winrm**. The section for assigning a provisioner is in this case assigning an Ansible playbook to each machine. The format for this project uses the name of the machine as the .yaml file name. An overview to Ansible and how it is used in provisioning machines is to come in a future tutorial but for now I will leave you with the [Ansible docs](https://docs.ansible.com) to peruse at your leisure.
+
+This is the general gist of Vagrantfiles and how we will be using them throughout many of our tutorials here at EdgyStack. Please take a look at the [](https://www.vagrantup.com/docs/networking/private_network)[Vagrant Documentation](https://www.vagrantup.com/docs/index) for more details on how to setup some gnarly environments using different providers and provisioners.

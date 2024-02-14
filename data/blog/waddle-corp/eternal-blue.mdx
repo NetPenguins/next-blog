@@ -1,0 +1,88 @@
+---
+title: "Eternal Blue"
+date: "2021-06-15"
+category: 
+  - "security"
+tags: 
+  - "cve"
+  - "eternal-blue"
+  - "exploit"
+  - "microsoft"
+  - "ms17-010"
+  - "waddlecorp"
+# coverImage: "code-1689066_1920.jpg"
+---
+
+Welcome back! This is a continuation on the [WaddleCorp Series](https://blog.edgystack.com/tag/waddlecorp). If you have yet to setup the environment please visit:
+
+[https://blog.edgystack.com/waddlecorp-intro/](https://blog.edgystack.com/hacking-intro/)
+
+### Server Message Block (**SMB**)
+
+Server Message Block (SMB) Protocol is a communication protocol that creates a client server connection. SMB provides file sharing, network browsing and printing allowing systems in the same network to communicate. In order for systems to participate in SMB communication both parties must first establish a TCP connection. **Port 445** is reserved for establishing the connection and transmission via TCP/SMB. Within SMB there are structures that allow the protocol to communicate info about a file's [extended-attributes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb/65e0c225-5925-44b0-8104-6b91339c709f) (metadata about file's properties).
+
+### What is Eternal Blue?
+
+CVE-2017-0143 to CVE-2017-0148 is a family of critical vulnerabilities in the SMBv1 server used in Windows 7, Server 2008, XP, and Windows 10 running on port 445. Eternal Blue is particularly focused on [CVE-2017-0144](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0144) which allows attackers the ability to leverage RCE against victim machines by way of sending specially crafted messages. Eternal Blue was created by the NSA and is most notably known by its use in the WannaCry ransomeware attack.
+
+> _Eternalblue takes advantage of three different bugs. The first is a mathematical error when the protocol tries to cast an OS/2 FileExtended Attribute (FEA) list structure to an NT FEA structure in order to determine how much memory to allocate. A miscalculation creates an integer overflow that causes less memory to be allocated than expected, which in turns leads to a [buffer overflow](https://cwe.mitre.org/data/definitions/680.html). With more data than expected being written, the extra data can overflow into adjacent memory space._ 
+> 
+> _Triggering the buffer overflow is achieved thanks to the second bug, which results from a difference in the SMB protocol’s definition of two related sub commands: `SMB_COM_TRANSACTION2` and `SMB_COM_NT_TRANSACT`. Both have a `_SECONDARY` command that is used when there is too much data to include in a single packet. The crucial difference between `TRANSACTION2`and `NT_TRANSACT` is that the latter calls for a data packet twice the size of the former. This is significant because an error in validation occurs if the client sends a crafted message using the `NT_TRANSACT` sub-command immediately before the `TRANSACTION2` one. While the protocol recognizes that two separate sub-commands have been received, it assigns the type and size of both packets (and allocates memory accordingly) based only on the type of the last one received. Since the last one is smaller, the first packet will occupy more space than it is allocated._
+> 
+> _Once the attackers achieve this initial overflow, they can take advantage of a third bug in SMBv1 which allows [heap spraying](https://andyrussellcronin.wordpress.com/2012/04/13/understanding-heap-spraying/), a technique which results in allocating a chunk of memory at a given address. From here, the attacker can write and execute [shellcode](https://www.sentinelone.com/blog/malicious-input-how-hackers-use-shellcode/) to take control of the system._
+> 
+> _It didn’t take long for penetration testers and red teams to see the value in using these related exploits, and they were soon [improved upon](https://github.com/rapid7/metasploit-framework/pull/9473) and incorporated into the Metasploit framework._
+> 
+> [SentinelOne - 2019](https://www.sentinelone.com/blog/eternalblue-nsa-developed-exploit-just-wont-die/)
+
+## Take it for a test drive
+
+Now that we know what Eternal Blue is and how it works let's take it for a spin. First fire up your environment and spin up the following machines.
+
+```shell
+vagrant up pentest skipper tien
+```
+
+Now that we have our environment ready we can start by logging into our "pentest" machine. Once in Kali open a terminal and run a quick Enumeration to look for our target and see what is open.
+
+![](/static/images/Screen-Shot-2021-06-15-at-6.31.04-PM.jpg)
+
+You can see above I have highlighted the first address which is showing us the DC (goku.capsulecorp.local). Below that is the machine of interest. Notice the port 445/tcp that is open. This is our hint to check the SMB version of this target. Run enumeration again but this time pass in a parameter to check the SMB version. The more direct way to check for this is:
+
+```shell
+sudo nmap -Pn -p445 --script smb-vuln-ms17-010 172.28.128.104 
+```
+
+NOTE: If you are unsure of the particular vulnerabilities or just want to check for all scripts you can simply run:
+
+```shell
+sudo nmap -A 172.28.128.104
+```
+
+wherein nmap will run default scripts among other things.
+
+![terminal of nmap results for eternal blue check](/static/images/Screen-Shot-2021-06-15-at-6.48.31-PM.jpg)
+
+ -A: Enable OS detection, version detection, script scanning, and traceroute  
+  
+[nmap options](https://nmap.org/book/man-briefoptions.html)
+
+Awesome! We now know our target is vulnerable time to fire up Metasploit. First it is always good to verify our db is initialized and then launch msfconsole via root.
+
+```shell
+sudo msfdb init && sudo msfconsole
+```
+
+Inside msfconsole search for "eternal", select exploit and view the options:
+
+![msfconsole eternal search and setup ](/static/images/Screen-Shot-2021-06-15-at-7.02.54-PM.jpg)
+
+Now we set the RHOSTS to our target and the LHOST to our Kali IP. After we set that we can run "exploit".
+
+![](/static/images/Screen-Shot-2021-06-15-at-7.03.08-PM.jpg)
+
+And Viola! We have successfully exploited Eternal Blue on a Windows 7 machine via msfconsole.
+
+For a more in depth and hands on approach to exploiting SMBv1 please check out [research.checkpoint.com's](https://research.checkpoint.com/2017/eternalblue-everything-know/) writeup on the matter.
+
+I hope you have enjoyed this quick walkthrough. Stay tuned for more to come.

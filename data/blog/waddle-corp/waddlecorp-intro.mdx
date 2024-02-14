@@ -1,0 +1,95 @@
+---
+title: "WaddleCorp Series Intro"
+date: "2021-05-16"
+category: 
+  - "security"
+  - "highlights"
+tags: 
+  - "hacking"
+  - "intro"
+  - "vagrant"
+  - "virtual-box"
+  - "waddlecorp"
+---
+
+Hello there! Welcome to WaddleCorp Hacking Series. This post should be used as the starting point for all walkthrough material. Here I will cover how to setup a local virtual hacking lab and will cover the general structure of the lab environment. It is here we will take a dive into common methods for finding and exploiting vulnerabilities!
+
+![yoda quote ](/static/images/riku-lu-f50UNtxoeiI-unsplash-2.jpg)
+
+* * *
+
+**Lab Setup**
+
+**_Minimum Requirements_**
+
+To get started ensure all dependencies are met.
+
+**Important Note:** If you are wanting to run the entire environment at one time ensure your machine has at least 16GB RAM. As machines are added more RAM will be required just keep this in mind.
+
+Install Vagrant - [https://www.vagrantup.com/downloads.html](https://www.vagrantup.com/downloads.html)
+
+Install VirtualBox - [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads)
+
+**NOTE: If you are unfamiliar with vagrant take some time to learn a bit about vagrant [https://blog.edgystack.com/what-is-vagrant](https://blog.edgystack.com/what-is-vagrant)**
+
+Now let's clone the repository we will use to run our lab.
+
+```shell
+git clone https://github.com/NetPenguins/pentest-lab
+```
+
+From here we will move into a python virtual environment and fire up Ansible; pywinrm is needed to manage Windows hosts.
+
+**NOTE: You can run ansible outside of a virtualenv; however, I prefer to keep my project's setups separate**.
+
+```bash
+cd <path you are working from>
+virtualenv ansible
+source ansible/bin/activate
+pip install ansible
+pip install pywinrm
+```
+
+**If you are on macOS and have issues running vagrant commands please apply the following to your terminal session**.
+
+```
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+```
+
+**_Running the environment_**
+
+Now that the environment is setup we are ready to engage Vagrant!
+
+Machines are launched through Vagrant using the following command:
+
+```
+vagrant up <machine name> 
+```
+
+and you can provision the box with:
+
+```
+vagrant provision <machine name> 
+```
+
+You can launch machines individually but ALWAYS launch **skipper** first:
+
+```
+vagrant up skipper
+```
+
+If any issues are identified provisioning **skippe**r, run the provision command again. This will typically resolve the problem.
+
+If you prefer to spin up the entire environment simply run:
+
+```
+vagrant up
+```
+
+To provision all you only have to run
+
+```
+vagrant provision
+```
+
+Congratulations you have the environment ready to go.
