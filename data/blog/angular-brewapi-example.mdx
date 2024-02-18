@@ -1,14 +1,15 @@
 ---
-title: "Angular BrewApi Example"
-date: "2023-01-07"
-category: 
-  - "web-development"
-tags: 
-  - "angular"
-  - "apis"
-  - "typescript"
-  - "web-dev"
-# coverImage: "pexels-photo-5858206.jpeg"
+title: 'Angular BrewApi Example'
+date: '2023-01-07'
+category:
+  - 'web-development'
+tags:
+  - 'angular'
+  - 'apis'
+  - 'typescript'
+  - 'web-dev'
+summary: Learn how to create a simple Angular app that displays a list of breweries using the OpenBrewery API. This tutorial covers the basics of Angular, such as data binding, directives, and services. You will also learn how to use a dark mode template and optimize your meta descriptions.
+coverImage: '/static/images/pexels-photo-5858206.jpeg'
 ---
 
 Today I want to go over how Angular works using a basic brewery listing example using the [OpenBrewery API](https://www.openbrewerydb.org/documentation).
@@ -83,7 +84,7 @@ Next lets create the query for getting breweries based on a zip code or default 
 ```javascript
 get(query: string){
     let q = query.length === 5
-    ? `https://api.openbrewerydb.org/breweries?by_postal=${query}` 
+    ? `https://api.openbrewerydb.org/breweries?by_postal=${query}`
     : `https://api.openbrewerydb.org/breweries?per_page=50`;
     return this.http.get(q)
   }
@@ -196,7 +197,7 @@ import { UiStyleToggleService } from './services/ui-style-toggle.service';
 export class AppComponent {
   brews: any;
   zip: string = '';
-  
+
   constructor(private _http: HttpService, private uiStyleToggleService: UiStyleToggleService) {}
 
   title = 'brewery-example';

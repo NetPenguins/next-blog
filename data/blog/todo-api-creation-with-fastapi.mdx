@@ -1,16 +1,17 @@
 ---
-title: "Todo API Creation with FastAPI"
-date: "2023-08-27"
-category: 
-  - "full-stack-todo-app"
-  - "highlights"
-tags: 
-  - "full-stack"
-  - "react-python-mongo"
-  - "mongodb"
-  - "python"
-  - "react"
-# coverImage: "ajda-atz-Dz4iJ3v4-X4-unsplash-scaled.jpg"
+title: 'Todo API Creation with FastAPI'
+date: '2023-08-27'
+category:
+  - 'full-stack-todo-app'
+  - 'highlights'
+tags:
+  - 'full-stack'
+  - 'react-python-mongo'
+  - 'mongodb'
+  - 'python'
+  - 'react'
+summary: 'Learn how to build a Todo API with FastAPI and MongoDB. This comprehensive guide provides step-by-step instructions, from setting up MongoDB using Docker, to developing a FastAPI backend with detailed code examples. Perfect for developers looking to expand their knowledge in modern web development practices.'
+coverImage: '/static/images/ajda-atz-Dz4iJ3v4-X4-unsplash-scaled.jpg'
 ---
 
 Let's dive into creating the Todo API. But first, we need to set up MongoDB.
@@ -121,7 +122,7 @@ async def validation_exception_handler(request: Request, exc):
     error_messages = []
     for error in exc.errors():
         error_messages.append({"field": error["loc"][0], "message": error["msg"]})
-    
+
     return JSONResponse(
         status_code=422,
         content={"detail": "Validation error", "errors": error_messages},
@@ -178,7 +179,7 @@ router = APIRouter()
 ```python
 @router.post("/", response_description='create a todo item', status_code=status.HTTP_201_CREATED,response_model=TodoModel)
 def create_item(
-    request: Request, 
+    request: Request,
     todo: TodoModel = Body(...)):
     """
     Create a new todo item.
@@ -201,10 +202,10 @@ def create_item(
 
 @router.post("/file", response_description="Create list with file")
 def create_list_with_attachement(
-    request: Request, 
-    title: str = Form(...), 
-    description: str = Form(...), 
-    timestamp: str = Form(...), 
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(...),
+    timestamp: str = Form(...),
     file: UploadFile = File(...)
 ):
     """
@@ -228,7 +229,7 @@ def create_list_with_attachement(
         doc = DocModel(filename=file.filename, contents=contents)
         todo = TodoModel(title=title, description=description, timestamp=timestamp, document=doc.model_dump())
         request.app.database["lists"].insert_one(todo.model_dump())
-        if todo.document.contents: 
+        if todo.document.contents:
             todo.document.contents = None
         return todo
     except Exception as e:
@@ -288,7 +289,7 @@ def show_list(request: Request):
 
 @router.get("/file/{id}", response_description="Create list with file")
 def get_attachement(
-    request: Request, 
+    request: Request,
     id: str):
     """
     Retrieve a file attachment for a todo item.
@@ -322,7 +323,7 @@ def get_attachement(
 ```python
 @router.delete("/",response_description="delete a item from list")
 def delete_list(
-    id: str, request: Request, 
+    id: str, request: Request,
     response: Response):
     """
     Delete a Todo item.
@@ -442,7 +443,7 @@ class TodoReturnModel(BaseModel):
     description: Optional[str]
     filename: Optional[str] = None
     done: Optional[bool] = False
-    
+
 ```
 
 Each route in the `routes.py` file handles a specific functionality within your FastAPI application. From creating and updating list items to working with file attachments and handling responses, these routes form the core functionality of your API. The `models.py` file defines the Pydantic models used for validation and serialization of data.
@@ -451,18 +452,18 @@ To run this locally, you can follow these steps:
 
 1. Open your command prompt or terminal.
 
-3. Navigate to the directory where the project is located.
+2. Navigate to the directory where the project is located.
 
-5. Enter the command `below` to start the local server.
+3. Enter the command `below` to start the local server.
 
-7. Open your browser and go to `http://localhost:8000` to access the application.
+4. Open your browser and go to `http://localhost:8000` to access the application.
 
-9. Docs can be found at http://localhost:8000/docs
+5. Docs can be found at http://localhost:8000/docs
 
 Now you can interact with the application and test its features on your local machine.
 
 ```bash
-# In the root of todo-api 
+# In the root of todo-api
 uvicorn main:app --reload
 ```
 

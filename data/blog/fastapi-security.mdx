@@ -1,17 +1,18 @@
 ---
-title: "FastAPI, React and Keycloak"
-date: "2023-03-12"
-category: 
-  - "development"
-tags: 
-  - "apis"
-  - "fast-api"
-  - "keycloak"
-  - "oauth"
-  - "python"
-  - "react"
-  - "security"
-# coverImage: "fabio-oyXis2kALVg-unsplash-2.jpg"
+title: 'FastAPI, React and Keycloak'
+date: '2023-03-12'
+category:
+  - 'development'
+tags:
+  - 'apis'
+  - 'fast-api'
+  - 'keycloak'
+  - 'oauth'
+  - 'python'
+  - 'react'
+  - 'security'
+summary: Learn how to set up a FastAPI service with Keycloak as an SSO provider and a React frontend in this tutorial. You will also find links to useful resources on FastAPI, Keycloak, React, and Docker. Follow the steps to create a secure and scalable web application with these technologies.
+coverImage: '/static/images/fabio-oyXis2kALVg-unsplash-2.jpg'
 ---
 
 In this article we will learn how to setup a FastAPI service using Keycloak as an SSO provider and a React frontend to tie it all together. First things first lets get the concepts and general technologies out of the way by visiting the following links to learn more.
@@ -24,16 +25,17 @@ React - https://reactjs.org
 
 Docker - https://www.docker.com
 
-#### TLDR;  
+#### TLDR;
+
 [https://github.com/NetPenguins/edgy-auth](https://github.com/NetPenguins/edgy-auth)
 
-* * *
+---
 
 ## Create Keycloak Service - 🔐
 
 For the sake of simplicity we will use the Docker method to create a basic development instance of Keycloak.
 
-#### ⚠️ IMPORTANT: Understand the following example should NEVER be used in a production environment. This is for development only. You can of course walk through the production setup by reading through [https://www.keycloak.org/getting-started/getting-started-docker#\_taking\_the\_next\_step](https://www.keycloak.org/getting-started/getting-started-docker#_taking_the_next_step).
+#### ⚠️ IMPORTANT: Understand the following example should NEVER be used in a production environment. This is for development only. You can of course walk through the production setup by reading through [https://www.keycloak.org/getting-started/getting-started-docker#\_taking_the_next_step](https://www.keycloak.org/getting-started/getting-started-docker#_taking_the_next_step).
 
 Start by running the following in a terminal:
 
@@ -51,11 +53,11 @@ Use these steps to create the first realm.
 
 1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
 
-3. Click the word **master** in the top-left corner, then click **Create realm**.
+2. Click the word **master** in the top-left corner, then click **Create realm**.
 
-5. Enter `demo` in the **Realm name** field.
+3. Enter `demo` in the **Realm name** field.
 
-7. Click **Create**.
+4. Click **Create**.
 
 ![Add realm](/static/images/add-realm.png)
 
@@ -67,20 +69,20 @@ To secure the API, you start by registering the application with your Keycloak i
 
 1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
 
-3. Click **Clients**.
+2. Click **Clients**.
 
-5. Click **Create client**
+3. Click **Create client**
 
-7. Fill in the form with the following values:
-    - **Client type**: `OpenID Connect`
-    
-    - **Client ID**: `edgy-auth`
+4. Fill in the form with the following values:
 
-9. Click **Next**
+   - **Client type**: `OpenID Connect`
+   - **Client ID**: `edgy-auth`
 
-11. Confirm that **Standard flow** is enabled.
+5. Click **Next**
 
-13. Click **Save**.
+6. Confirm that **Standard flow** is enabled.
+
+7. Click **Save**.
 
 ### Edit Client
 
@@ -96,26 +98,26 @@ To secure the UI, you start by registering the application with your Keycloak in
 
 1. Open the [Keycloak Admin Console](http://localhost:8080/admin).
 
-3. Click **Clients**.
+2. Click **Clients**.
 
-5. Click **Create client**
+3. Click **Create client**
 
-7. Fill in the form with the following values:
-    - **Client type**: `OpenID Connect`
-    
-    - **Client ID**: `demo`
+4. Fill in the form with the following values:
 
-9. Click **Next**
+   - **Client type**: `OpenID Connect`
+   - **Client ID**: `demo`
 
-11. Confirm that **Standard flow** is enabled.
+5. Click **Next**
 
-13. Click **Save**.
+6. Confirm that **Standard flow** is enabled.
+
+7. Click **Save**.
 
 ### Edit Client
 
 ![](/static/images/Screenshot-2023-03-12-at-10.48.45-AM-618x1024.png)
 
-* * *
+---
 
 ## Create the API - ⚙️
 
@@ -211,7 +213,7 @@ app.add_middleware(
 )
 ```
 
-Here we define the dependencies we need and define our application.  
+Here we define the dependencies we need and define our application.
 
 Setting up FastAPI to hold the openapi information we want along with a default response class of JSONResponse.
 
@@ -298,7 +300,7 @@ async def health_check():
     return {'status': "good"}
 
 @app.get("/admin")
-async def admin(token: dict = Depends(verify_token)): 
+async def admin(token: dict = Depends(verify_token)):
     log(token)
     return f'Hi premium user {token["preferred_username"]}'
 
@@ -319,7 +321,7 @@ With all this in place we can run our api in the terminal with the following:
 python main.py
 ```
 
-* * *
+---
 
 ## Create the UI - 👨🏻‍💻
 

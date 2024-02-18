@@ -1,15 +1,16 @@
 ---
-title: "Build and deploy To-Do app with Docker"
-date: "2023-08-28"
-category: 
-  - "full-stack-todo-app"
-  - "highlights"
-tags: 
-  - "cd"
-  - "docker"
-  - "docker-compose"
-  - "react-python-mongo"
-# coverImage: "growtika-YniQ5vouxqg-unsplash.jpg"
+title: 'Build and deploy To-Do app with Docker'
+date: '2023-08-28'
+category:
+  - 'full-stack-todo-app'
+  - 'highlights'
+tags:
+  - 'cd'
+  - 'docker'
+  - 'docker-compose'
+  - 'react-python-mongo'
+coverImage: '/static/images/growtika-YniQ5vouxqg-unsplash.jpg'
+summary: "Explore the Docker files and Docker Compose configuration for a full-stack Todo application. We'll cover how to set up Docker files for both the backend and frontend components, as well as how to create a Docker Compose file to orchestrate the entire application."
 ---
 
 ## Introduction
@@ -212,7 +213,7 @@ services:
     command: mongod --auth --bind_ip 127.0.0.1,10.0.0.3
     volumes:
       - mongodb_data:/data/db
-        
+
 networks:
   mynetwork:
     driver: bridge

@@ -8,6 +8,7 @@ import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
+import Card from '@/components/Card'
 
 interface PaginationProps {
   totalPages: number
@@ -116,7 +117,8 @@ export default function ListLayout({
             const { path, date, title, summary, tags } = post
             return (
               <li key={path} className="py-4">
-                <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
+                <Card title={title} description={summary} imgSrc={undefined} href={`/${path}`} />
+                {/* <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>
                     <dt className="sr-only">Published on</dt>
                     <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
@@ -138,7 +140,7 @@ export default function ListLayout({
                       {summary}
                     </div>
                   </div>
-                </article>
+                </article> */}
               </li>
             )
           })}

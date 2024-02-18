@@ -1,18 +1,19 @@
 ---
-title: "What is Vagrant?"
-date: "2021-05-17"
-category: 
-  - "security"
-  - "highlights"
-tags: 
-  - "vagrant"
-  - "virtual-machines"
-  - "waddlecorp"
-# coverImage: "droid.jpg"
+title: 'What is Vagrant?'
+date: '2021-05-17'
+category:
+  - 'security'
+  - 'highlights'
+tags:
+  - 'vagrant'
+  - 'virtual-machines'
+  - 'waddlecorp'
+summary: Learn how to use Vagrant, a tool for building and managing virtual machine environments, to create consistent and reliable development environments. This blog post covers the basics of Vagrant, such as boxes, providers, provisioners, and Vagrantfiles, and shows how to use them with Ansible.
+coverImage: '/static/images/droid.jpg'
 ---
 
 > Vagrant is a tool for building and managing virtual machine environments in a single workflow. With an easy-to-use workflow and focus on automation, Vagrant lowers development environment setup time, increases production parity, and makes the "works on my machine" excuse a relic of the past.
-> 
+>
 > [Vagrant](https://www.vagrantup.com/intro).[com](https://www.vagrantup.com/intro)
 
 ## Well this sounds awesome but what does it really mean?
@@ -29,7 +30,7 @@ Vagrant has three primary features you should become familiar with:
 
 ## Box
 
-A box in Vagrant is often a virtual machine that developers can pull down and use in their environment. Boxes typically come from the official Vagrant box catalog also known as "Bento" boxes and can be found at [https://app.vagrantup.com/bento](https://app.vagrantup.com/bento ). Also, there is an entire open sourced section for community boxes created and shared by other developers which can be found at [https://app.vagrantup.com/boxes/search](https://app.vagrantup.com/boxes/search). A word to the wise, DO NOT trust any old box from the open source section! This is a HUGE security risk as boxes can be designed to contain any number of horrid entities.
+A box in Vagrant is often a virtual machine that developers can pull down and use in their environment. Boxes typically come from the official Vagrant box catalog also known as "Bento" boxes and can be found at [https://app.vagrantup.com/bento](https://app.vagrantup.com/bento). Also, there is an entire open sourced section for community boxes created and shared by other developers which can be found at [https://app.vagrantup.com/boxes/search](https://app.vagrantup.com/boxes/search). A word to the wise, DO NOT trust any old box from the open source section! This is a HUGE security risk as boxes can be designed to contain any number of horrid entities.
 
 ## Provider
 
@@ -63,7 +64,7 @@ vms = [{name: "skipper", ip: "172.28.128.100", box: winsrv, version: "0.0.5-alph
       system.vm.network :forwarded_port, guest: 3389, host: 3389, auto_correct: true
       system.vm.provision "ansible" do |ansible|
         ansible.playbook = "#{vm[:name]}.yml"
-      end 
+      end
     end
   end
 ```

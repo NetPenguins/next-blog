@@ -1,13 +1,14 @@
 ---
-title: "Building a User Interface for Your To-Do Application"
-date: "2023-08-27"
-category: 
-  - "full-stack-todo-app"
-tags: 
-  - "react-python-mongo"
-  - "react"
-  - "web-dev"
-# coverImage: "alvaro-reyes-qWwpHwip31M-unsplash.jpg"
+title: 'Building a User Interface for Your To-Do Application'
+date: '2023-08-27'
+category:
+  - 'full-stack-todo-app'
+tags:
+  - 'react-python-mongo'
+  - 'react'
+  - 'web-dev'
+summary: Explore how to build a dynamic UI for a to-do application using React and Vite. Learn to create interactive components, interact with backend API, and enable content sharing with the Web Share API.
+coverImage: '/static/images/alvaro-reyes-qWwpHwip31M-unsplash.jpg'
 ---
 
 With the backend API in place, it's time to create the user interface (UI) for our application using React. React is a popular JavaScript library for building interactive and dynamic user interfaces. It's widely used for single-page applications (SPAs) and provides a component-based architecture that promotes reusability and maintainability.
@@ -89,7 +90,7 @@ const App: React.FC = () => {
       try {
         const fileBlob = await downloadFile(todo);
         const url = window.URL.createObjectURL(new Blob([fileBlob]));
-  
+
         const link = document.createElement('a');
         link.href = url;
         console.log(todo)
@@ -132,26 +133,26 @@ The `TodoForm` component is responsible for creating new todo items. It features
 The `TodoForm` component uses the `useState` hook to manage the state of the form inputs.
 
 ```typescript
-import React, { useRef, useState } from 'react';
-import './TodoForm.css';
-import { createTodo } from '../../services/ApiService';
-import { Todo } from '../types';
+import React, { useRef, useState } from 'react'
+import './TodoForm.css'
+import { createTodo } from '../../services/ApiService'
+import { Todo } from '../types'
 
 interface TodoFormProps {
-  onAddTodo: (todo: Todo) => void;
+  onAddTodo: (todo: Todo) => void
 }
 
 const TodoForm: React.FC<TodoFormProps> = ({ onAddTodo }) => {
   // State for managing form inputs
-  const [title, setTitle] = useState('');
-  const [attachment, setAttachment] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [description, setDescription] = useState('')
 
   // Rest of the component...
-};
+}
 
-export default TodoForm;
+export default TodoForm
 ```
 
 - **title**: The title of the todo item. This state variable holds the value entered in the title input field.
@@ -166,7 +167,7 @@ This component renders a form with input fields for title, description, and file
 
 ```typescript
 const handleSubmit = async (event: React.FormEvent) => {
-  event.preventDefault();
+  event.preventDefault()
   try {
     // Construct a todo object with form input values
     const time = new Date().toLocaleString('en-US', {
@@ -175,29 +176,29 @@ const handleSubmit = async (event: React.FormEvent) => {
       day: 'numeric',
       hour: 'numeric',
       minute: 'numeric',
-    });
+    })
     const todo: Todo = {
       title,
       description,
       document: attachment,
       timestamp: time,
       done: false,
-    };
+    }
 
     // Call the createTodo function from the API service
-    const createdTodo = await createTodo(todo);
+    const createdTodo = await createTodo(todo)
 
     // Add the newly created todo to the list
-    onAddTodo(createdTodo);
+    onAddTodo(createdTodo)
 
     // Clear form fields
-    setTitle('');
-    setDescription('');
-    setAttachment(null);
+    setTitle('')
+    setDescription('')
+    setAttachment(null)
   } catch (error) {
     // Handle error, display error message, etc.
   }
-};
+}
 ```
 
 In this code snippet, the `handleSubmit` function constructs a new todo object using the form input values and calls the `createTodo` function from the API service to add the todo item to the list.
@@ -271,18 +272,18 @@ Overall, the `TodoForm` component efficiently manages the state of form inputs a
 The `TodoItem` component is responsible for rendering a single todo item along with various interaction options. It uses the `useState` hook to manage the expanded state of the item's description.
 
 ```typescript
-import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrashAlt, faFileDownload, faShare } from '@fortawesome/free-solid-svg-icons';
-import './TodoItem.css';
-import { Todo } from '../types';
-import { shareContent } from '../../services/shareContent';
+import React, { useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrashAlt, faFileDownload, faShare } from '@fortawesome/free-solid-svg-icons'
+import './TodoItem.css'
+import { Todo } from '../types'
+import { shareContent } from '../../services/shareContent'
 
 interface TodoItemProps {
-  todo: Todo;
-  onDeleteTodo: (todo: Todo) => void;
-  onDownloadAttachment: (todo: Todo) => void;
-  onToggleDone: (todo: Todo) => void;
+  todo: Todo
+  onDeleteTodo: (todo: Todo) => void
+  onDownloadAttachment: (todo: Todo) => void
+  onToggleDone: (todo: Todo) => void
 }
 
 const TodoItem: React.FC<TodoItemProps> = ({
@@ -292,12 +293,12 @@ const TodoItem: React.FC<TodoItemProps> = ({
   onToggleDone,
 }) => {
   // State for managing expanded view of description
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false)
 
   // Rest of the component...
-};
+}
 
-export default TodoItem;
+export default TodoItem
 ```
 
 The `TodoItem` component has the following key parts:
@@ -310,8 +311,8 @@ The `toggleExpand` function toggles the expanded state of the description when t
 
 ```typescript
 const toggleExpand = () => {
-  setExpanded(!expanded);
-};
+  setExpanded(!expanded)
+}
 ```
 
 The component includes buttons for different actions, such as sharing the todo item, downloading attachments, and deleting the item.
@@ -340,12 +341,12 @@ The `handleShare` function is called when the share button is clicked. It uses t
 
 ```typescript
 const handleShare = () => {
-  const title = 'Share Todo';
-  const text = `Check out this todo: ${todo.title}`;
-  const url = window.location.href;
+  const title = 'Share Todo'
+  const text = `Check out this todo: ${todo.title}`
+  const url = window.location.href
 
-  shareContent(title, text, url);
-};
+  shareContent(title, text, url)
+}
 ```
 
 Overall, the `TodoItem` component provides an intuitive user interface for interacting with individual todo items, allowing users to expand the description, share the item, download attachments, and delete the item.
@@ -472,22 +473,22 @@ This function makes a GET request to the `/list/` endpoint of the API and return
 ```typescript
 /**
  * Makes a GET request to the `/list/` endpoint of an API and returns the response data.
- * 
+ *
  * @returns {Promise<any>} The data received from the API as a result of the GET request.
  * @throws {Error} If an error occurs during the request.
- * 
+ *
  * @example
  * const todos = await getAllTodos();
  * console.log(todos);
  */
 export const getAllTodos = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/list/`);
-    return response.data;
+    const response = await axios.get(`${API_BASE_URL}/list/`)
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 #### createTodo
@@ -498,18 +499,18 @@ This function creates a new todo item. If the item has an attachment, it calls `
 export const createTodo = async (todo: Todo) => {
   try {
     if (todo.document) {
-      return createTodoWithAttachment(todo);
+      return createTodoWithAttachment(todo)
     }
     const response = await axios.post(`${API_BASE_URL}/list`, todo, {
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-    return response.data;
+    })
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 #### createTodoWithAttachment
@@ -519,26 +520,26 @@ This function creates a new todo item with an attachment. It constructs a `FormD
 ```typescript
 export const createTodoWithAttachment = async (todo: Todo) => {
   try {
-    const formData = new FormData();
-    formData.append('title', todo.title || '');
-    formData.append('description', todo.description);
-    formData.append('timestamp', todo.timestamp);
+    const formData = new FormData()
+    formData.append('title', todo.title || '')
+    formData.append('description', todo.description)
+    formData.append('timestamp', todo.timestamp)
 
     if (todo.document) {
-      formData.append('file', todo.document, todo.document.name);
+      formData.append('file', todo.document, todo.document.name)
     }
 
     const response = await axios.post(`${API_BASE_URL}/list/file`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
+    })
 
-    return response.data;
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 #### deleteTodo
@@ -548,12 +549,12 @@ This function deletes a todo item from the API by sending a DELETE request to th
 ```typescript
 export const deleteTodo = async (todo: Todo) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/list/?id=${todo.id}`);
-    return response.data;
+    const response = await axios.delete(`${API_BASE_URL}/list/?id=${todo.id}`)
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 #### downloadFile
@@ -565,12 +566,12 @@ export const downloadFile = async (todo: Todo) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/list/file/${todo.id}`, {
       responseType: 'blob',
-    });
-    return response.data;
+    })
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 #### updateTodo
@@ -580,17 +581,17 @@ This function updates a todo item's status. It sends a PUT request to the `/list
 ```typescript
 export const updateTodo = async (todo: Todo, remove_file: boolean = false) => {
   try {
-    var updatedTodo = convertToUpdateTodo(todo);
-    updatedTodo.done = !updatedTodo.done;
+    var updatedTodo = convertToUpdateTodo(todo)
+    updatedTodo.done = !updatedTodo.done
     const response = await axios.put(
       `${API_BASE_URL}/list/?id=${todo.id}&remove_file=${remove_file}`,
       updatedTodo
-    );
-    return response.data;
+    )
+    return response.data
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 ```
 
 The `ApiService` module provides a structured way to interact with the API endpoints, making it easier to manage and organize API calls throughout the application.
@@ -614,11 +615,11 @@ The function checks if the `navigator.share` API is available in the current bro
 ```typescript
 /**
  * Function to share content using the navigator.share method.
- * 
+ *
  * @param title - The title of the content to be shared.
  * @param text - The text content to be shared.
  * @param url - The URL of the content to be shared.
- * 
+ *
  * @example
  * shareContent("Example Title", "Example Text", "https://example.com");
  */
@@ -629,12 +630,12 @@ export const shareContent = async (title: string, text: string, url: string) => 
         title,
         text,
         url,
-      });
+      })
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error('Error sharing:', error)
     }
   }
-};
+}
 ```
 
 This function utilizes the Web Share API to provide a consistent way to enable content sharing across different platforms and devices.

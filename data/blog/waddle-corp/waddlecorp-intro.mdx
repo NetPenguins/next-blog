@@ -1,22 +1,24 @@
 ---
-title: "WaddleCorp Series Intro"
-date: "2021-05-16"
-category: 
-  - "security"
-  - "highlights"
-tags: 
-  - "hacking"
-  - "intro"
-  - "vagrant"
-  - "virtual-box"
-  - "waddlecorp"
+title: 'WaddleCorp Series Intro'
+date: '2021-05-16'
+category:
+  - 'security'
+  - 'highlights'
+tags:
+  - 'hacking'
+  - 'intro'
+  - 'vagrant'
+  - 'virtual-box'
+  - 'waddlecorp'
+summary: Learn how to set up a local virtual hacking lab and explore common methods for finding and exploiting vulnerabilities in this introductory post of the WaddleCorp Hacking Series. You will need Vagrant, VirtualBox, and Ansible to get started. Follow the step-by-step instructions and join the fun!
+coverImage: '/static/images/penguins.jpeg'
 ---
 
 Hello there! Welcome to WaddleCorp Hacking Series. This post should be used as the starting point for all walkthrough material. Here I will cover how to setup a local virtual hacking lab and will cover the general structure of the lab environment. It is here we will take a dive into common methods for finding and exploiting vulnerabilities!
 
 ![yoda quote ](/static/images/riku-lu-f50UNtxoeiI-unsplash-2.jpg)
 
-* * *
+---
 
 **Lab Setup**
 
@@ -63,13 +65,13 @@ Now that the environment is setup we are ready to engage Vagrant!
 Machines are launched through Vagrant using the following command:
 
 ```
-vagrant up <machine name> 
+vagrant up <machine name>
 ```
 
 and you can provision the box with:
 
 ```
-vagrant provision <machine name> 
+vagrant provision <machine name>
 ```
 
 You can launch machines individually but ALWAYS launch **skipper** first:
