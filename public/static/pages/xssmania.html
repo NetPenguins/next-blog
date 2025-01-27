@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>XSS Mania</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #121212;
+                color: #ffffff;
+                margin: 0 auto;
+
+                padding-left: 10%;
+                padding-right: 10%;
+                padding-bottom: 10rem;
+            }
+            section {
+                padding: 20px;
+                margin: 20px;
+                border-radius: 8px;
+                background-color: #1e1e1e;
+            }
+            h1 {
+                color: #4f0;
+            }
+            .title {
+                width: 100%;
+                text-align: center;
+            }
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: #4f0;
+            }
+            input[type="text"] {
+                width: 80%;
+                padding: 8px;
+                margin-bottom: 10px;
+                border: 1px solid #4f0;
+                border-radius: 4px;
+                background-color: #333333;
+                color: #ffffff;
+            }
+            input[type="submit"] {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                background-color: #005b0e;
+                color: #ffffff;
+                cursor: pointer;
+            }
+            input[type="submit"]:hover {
+                background-color: #009933;
+            }
+            p {
+                color: #e0e0e0;
+            }
+            footer {
+                text-align: center;
+                padding: 10px;
+                background-color: #1e1e1e;
+                color: #ffffff;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            footer a {
+                color: #4f0;
+                text-decoration: none;
+            }
+            footer a:hover {
+                text-decoration: underline;
+            }
+            details {
+                background-color: #333333;
+                border: 1px solid #4f0;
+                border-radius: 4px;
+                padding: 10px;
+                margin-top: 10px;
+            }
+            summary {
+                cursor: pointer;
+                font-weight: bold;
+                color: #4f0;
+            }
+            pre {
+                background-color: #1e1e1e;
+                padding: 10px;
+                border-radius: 4px;
+                overflow-x: auto;
+            }
+            code {
+                color: #e0e0e0;
+            }
+            .back-button {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background-color: #005b0e;
+                color: #ffffff;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+            }
+            .back-button:hover {
+                background-color: #004a0b;
+            }
+            .back-button svg {
+                margin-right: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <a href="/" class="back-button">
+            <svg width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708.708L2.707 7.5H14.5A.5.5 0 0 1 15 8z"/>
+            </svg>
+            Back to blog
+        </a>
+        <h1 class="title">XSS MANIA</h1>
+        <section>
+            <h1>Example 1</h1>
+            <p>This example demonstrates how an XSS vulnerability can occur when user input is directly inserted into the DOM without proper sanitization.</p>
+            <form id="form1">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name">
+                <input type="submit" value="Submit name">
+            </form>
+            <script>
+                document.getElementById('form1').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const name = document.getElementById('name').value;
+                    const outputDiv = document.createElement('div');
+                    outputDiv.innerHTML = '<p>Hello, ' + name + '!</p>';
+                    document.getElementById('form1').appendChild(outputDiv);
+                });
+            </script>
+            <details>
+                <summary>Show vulnerable code</summary>
+                <pre><code>
+// Vulnerable code: directly inserting user input into the DOM
+document.getElementById('form1').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const name = document.getElementById('name').value;
+    const outputDiv = document.createElement('div');
+    outputDiv.innerHTML = '&lt;p&gt;Hello, ' + name + '!&lt;/p&gt;'; // Vulnerable part
+    document.getElementById('form1').appendChild(outputDiv);
+});
+                </code></pre>
+            </details>
+        </section>
+        <section>
+            <h1>Example 2</h1>
+            <p>This example demonstrates how an XSS vulnerability can occur when user input is used to dynamically create an element with an event handler.</p>
+            <form id="form2">
+                <label for="message">Message:</label>
+                <input type="text" id="message" name="message">
+                <input type="submit" value="Submit message">
+            </form>
+            <script>
+                document.getElementById('form2').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const message = document.getElementById('message').value;
+                    const button = document.createElement('button');
+                    button.innerHTML = 'Click me';
+                    button.setAttribute('onclick', 'alert("' + message + '")');
+                    document.getElementById('form2').appendChild(button);
+                });
+            </script>
+            <details>
+                <summary>Show vulnerable code</summary>
+                <pre><code>
+// Vulnerable code: using user input in an event handler
+document.getElementById('form2').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const message = document.getElementById('message').value;
+    const button = document.createElement('button');
+    button.innerHTML = 'Click me';
+    button.setAttribute('onclick', 'alert("' + message + '")'); // Vulnerable part
+    document.getElementById('form2').appendChild(button);
+});
+                </code></pre>
+            </details>
+        </section>
+        <section>
+            <h1>Example 3</h1>
+            <p>This example demonstrates how an XSS vulnerability can occur when user input is used to dynamically create a script element.</p>
+            <form id="form3">
+                <label for="code">Code:</label>
+                <input type="text" id="code" name="code">
+                <input type="submit" value="Submit code">
+            </form>
+            <script>
+                document.getElementById('form3').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const code = document.getElementById('code').value;
+                    const script = document.createElement('script');
+                    script.innerHTML = code;
+                    document.getElementById('form3').appendChild(script);
+                });
+            </script>
+            <details>
+                <summary>Show vulnerable code</summary>
+                <pre><code>
+// Vulnerable code: creating a script element with user input
+document.getElementById('form3').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const code = document.getElementById('code').value;
+    const script = document.createElement('script');
+    script.innerHTML = code; // Vulnerable part
+    document.getElementById('form3').appendChild(script);
+});
+                </code></pre>
+            </details>
+        </section>
+        <section>
+            <h1>Example 4</h1>
+            <p>This example demonstrates how an XSS vulnerability can occur when user input is used to dynamically create a clickable link with a URL that contains JavaScript code.</p>
+            <p>Example input: "javascript:alert('XSS')" </p>
+            <form id="form4">
+                <label for="url">URL:</label>
+                <input type="text" id="url" name="url">
+                <input type="submit" value="Submit URL">
+            </form>
+            <script>
+                document.getElementById('form4').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const url = document.getElementById('url').value;
+                    const link = document.createElement('a');
+                    const br = document.createElement('br');
+                    link.href = url;
+                    link.textContent = "Click me!";
+                    document.getElementById('form4').appendChild(br);
+                    document.getElementById('form4').appendChild(link);
+                });
+            </script>
+            <details>
+                <summary>Show vulnerable code</summary>
+                <pre><code>
+// Vulnerable code: creating a link with a potentially dangerous URL
+document.getElementById('form4').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const url = document.getElementById('url').value;
+    const link = document.createElement('a');
+    const br = document.createElement('br');
+    link.href = url; // Vulnerable part
+    link.textContent = "Click me!";
+    document.getElementById('form4').appendChild(br);
+    document.getElementById('form4').appendChild(link);
+});
+                </code></pre>
+            </details>
+        </section>
+    </body>
+    <footer>
+        <p>Created by <a href="https://edgystack.vercel.app">NetPenguin</a></p>
+    </footer>
+</html>
